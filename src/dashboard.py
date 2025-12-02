@@ -142,7 +142,7 @@ else:
         fig.add_trace(go.Scatter(x=df.index, y=df[lower_col], line=dict(color='#800020', width=1.5), name='Lower BB')) # Burgundy
     
     fig.update_layout(title=f"{symbol} Price Action", xaxis_title="Date", yaxis_title="Price", height=600, template='plotly_white')
-    st.plotly_chart(fig, use_container_width=True) # Keep as is for compatibility, warning is advisory
+    st.plotly_chart(fig, width="stretch")
     
     # Indicator Chart (ADX)
     st.subheader("Regime Indicators")
@@ -150,7 +150,7 @@ else:
     fig2.add_trace(go.Scatter(x=df.index, y=df['adx'], line=dict(color='purple', width=3), name='ADX'))
     fig2.add_hline(y=25, line_dash="dash", line_color="black", annotation_text="Trend Threshold (25)")
     fig2.update_layout(title="Trend Strength (ADX)", height=300, template='plotly_white')
-    st.plotly_chart(fig2, use_container_width=True)
+    st.plotly_chart(fig2, width="stretch")
     
     # Raw Data
     with st.expander("View Raw Data"):
