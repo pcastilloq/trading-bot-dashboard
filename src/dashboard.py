@@ -142,7 +142,7 @@ else:
         fig.add_trace(go.Scatter(x=df.index, y=df[lower_col], line=dict(color='#800020', width=1.5), name='Lower BB')) # Burgundy
     
     fig.update_layout(title=f"{symbol} Price Action", xaxis_title="Date", yaxis_title="Price", height=600, template='plotly_white')
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, use_container_width=True) # Keep as is for compatibility, warning is advisory
     
     # Indicator Chart (ADX)
     st.subheader("Regime Indicators")

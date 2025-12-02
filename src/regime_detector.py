@@ -53,7 +53,7 @@ class RegimeDetector:
         self.df.loc[(self.df['close'] < self.df['sma_200']) & (self.df['adx'] >= 25), 'regime'] = 'Bear'
         
         # Fill NaNs (start of data) with 'Unknown' or 'Sideways'
-        self.df['regime'].fillna('Unknown', inplace=True)
+        self.df['regime'] = self.df['regime'].fillna('Unknown')
         
         return self.df
 
