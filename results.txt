@@ -1,0 +1,54 @@
+Strategy: Buy & Hold (Benchmark)
+  Total Return (%): 53.08
+  Number of Trades: 1
+  Win Rate (%): 100.0
+  Final Capital: 15308.32
+
+Strategy: SuperTrend (10, 3.0)
+  Total Return (%): 29.2
+  Number of Trades: 2
+  Win Rate (%): 50.0
+  Final Capital: 12919.99
+
+Strategy: EMA Crossover (50/200)
+  Total Return (%): 0.0
+  Number of Trades: 0
+  Win Rate (%): 0.0
+  Final Capital: 10000.0
+
+Strategy: SMA Crossover (50/200)
+  Total Return (%): 0.0
+  Number of Trades: 0
+  Win Rate (%): 0.0
+  Final Capital: 10000.0
+
+Strategy: RSI Reversion (14)
+  Total Return (%): 0.0
+  Number of Trades: 0
+  Win Rate (%): 0.0
+  Final Capital: 10000.0
+
+Strategy: Bollinger (20, 2.0) + RSI (14)
+  Total Return (%): 0.0
+  Number of Trades: 0
+  Win Rate (%): 0.0
+  Final Capital: 10000.0
+
+Strategy: Bollinger (20, 2.0)
+  Total Return (%): 3.36
+  Number of Trades: 1
+  Win Rate (%): 100.0
+  Final Capital: 10336.29
+
+Strategy: MACD Crossover (12/26/9)
+  Total Return (%): 27.86
+  Number of Trades: 5
+  Win Rate (%): 60.0
+  Final Capital: 12785.79
+
+Strategy: Donchian Breakout (20)
+  Total Return (%): 17.87
+  Number of Trades: 3
+  Win Rate (%): 66.67
+  Final Capital: 11787.4
+
