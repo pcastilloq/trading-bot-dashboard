@@ -5,3 +5,5 @@ matplotlib
 streamlit
 plotly
 yfinance
+requests
+python-dotenv
