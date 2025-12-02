@@ -57,14 +57,68 @@ class DataLoader:
                 print(f"Filtered data up to {end_date}. Rows: {len(df)}")
             
             return df
-        except ccxt.NetworkError as e:
-            print(f"Network error fetching data: {e}")
-            return None
-        except ccxt.ExchangeError as e:
-            print(f"Exchange error fetching data: {e}")
-            return None
         except Exception as e:
-            print(f"An unexpected error occurred: {e}")
+            print(f"Primary fetch failed: {e}. Trying fallback (yfinance)...")
+            return self.fetch_data_yfinance(symbol, timeframe, limit, start_date, end_date)
+
+    def fetch_data_yfinance(self, symbol: str, timeframe: str, limit: int, start_date: Optional[str], end_date: Optional[str]) -> Optional[pd.DataFrame]:
+        """
+        Fallback method to fetch data using yfinance.
+        """
+        try:
+            import yfinance as yf
+            
+            # Map symbol to yfinance format (BTC/USDT -> BTC-USD)
+            yf_symbol = symbol.replace('/', '-').replace('USDT', 'USD')
+            
+            # Map timeframe
+            # yfinance supports: 1m, 2m, 5m, 15m, 30m, 60m, 90m, 1h, 1d, 5d, 1wk, 1mo, 3mo
+            tf_map = {
+                '1d': '1d',
+                '4h': '1h', # yf doesn't support 4h well, fallback to 1h
+                '1h': '1h',
+                '15m': '15m'
+            }
+            interval = tf_map.get(timeframe, '1d')
+            
+            # Calculate period based on limit if no start_date
+            period = "2y" # Default to enough history
+            
+            print(f"Fetching data from yfinance for {yf_symbol} ({interval})...")
+            ticker = yf.Ticker(yf_symbol)
+            
+            if start_date:
+                # yfinance expects YYYY-MM-DD
+                start = start_date.split('T')[0]
+                end = None
+                if end_date:
+                    end = end_date.split('T')[0]
+                df = ticker.history(interval=interval, start=start, end=end)
+            else:
+                df = ticker.history(period=period, interval=interval)
+                
+            if df.empty:
+                print("yfinance returned empty data.")
+                return None
+                
+            # Format DataFrame to match ccxt structure
+            # yfinance columns: Open, High, Low, Close, Volume, Dividends, Stock Splits
+            df = df[['Open', 'High', 'Low', 'Close', 'Volume']]
+            df.columns = ['open', 'high', 'low', 'close', 'volume']
+            df.index.name = 'timestamp'
+            
+            # Ensure timezone naive
+            if df.index.tz is not None:
+                df.index = df.index.tz_localize(None)
+                
+            # Filter limit if needed (take last N)
+            if not start_date and limit:
+                df = df.tail(limit)
+                
+            return df
+            
+        except Exception as e:
+            print(f"yfinance fallback failed: {e}")
             return None
 
     def save_data(self, df: pd.DataFrame, filename: str) -> None:
