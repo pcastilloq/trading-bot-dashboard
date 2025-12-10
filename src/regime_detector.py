@@ -25,35 +25,48 @@ class RegimeDetector:
         # pandas-ta adx returns three columns: ADX_14, DMP_14, DMN_14
         # We need ADX_14. Check column names.
         adx_col = 'ADX_14'
-        if adx_col not in adx.columns:
+        if adx is not None and adx_col not in adx.columns:
             adx_col = adx.columns[0] # Fallback
             
-        self.df['adx'] = adx[adx_col]
+        if adx is not None:
+             self.df['adx'] = adx[adx_col]
+        else:
+             self.df['adx'] = float('nan')
         
+        # Ensure columns are float to avoid Object/NoneType comparison errors
+        # If sma_200 is all None (due to short history), fill with NaN and ensure float dtype
+        self.df['sma_200'] = pd.to_numeric(self.df['sma_200'], errors='coerce')
+        self.df['adx'] = pd.to_numeric(self.df['adx'], errors='coerce')
+
         # Logic
         # 1. Trend Direction: Price vs SMA 200
         # 2. Trend Strength: ADX > 25
         
-        conditions = [
-            (self.df['adx'] < 25), # Sideways (Weak Trend)
-            (self.df['close'] > self.df['sma_200']) & (self.df['adx'] >= 25), # Bull (Strong Uptrend)
-            (self.df['close'] < self.df['sma_200']) & (self.df['adx'] >= 25)  # Bear (Strong Downtrend)
-        ]
+        # Define masks to handle NaNs safely
+        # If SMA_200 is NaN, we cannot determine Bull/Bear based on it.
+        # We default to 'Unknown' or 'Sideways' if data is missing.
         
-        choices = ['Sideways', 'Bull', 'Bear']
+        self.df['regime'] = 'Unknown'
         
-        self.df['regime'] = pd.Series(index=self.df.index, dtype='object')
+        # Safe comparison using fillna for boolean logic (treating NaN as False for conditions)
+        # Note: We keep NaNs in the data but use fillna ONLY for the condition generation
+        # to prevent TypeError. But evaluating (NaN > float) is usually False, not Error.
+        # The Error (float > NoneType) happens if the column is Object. pd.to_numeric fixes that.
         
-        # We need to handle NaN values from indicators (first 200 candles)
-        # np.select is good but requires aligned arrays.
-        # Let's use apply or simple masking.
+        has_sma = self.df['sma_200'].notna()
+        has_adx = self.df['adx'].notna()
         
-        self.df.loc[self.df['adx'] < 25, 'regime'] = 'Sideways'
-        self.df.loc[(self.df['close'] > self.df['sma_200']) & (self.df['adx'] >= 25), 'regime'] = 'Bull'
-        self.df.loc[(self.df['close'] < self.df['sma_200']) & (self.df['adx'] >= 25), 'regime'] = 'Bear'
+        # Sideways: ADX < 25 (and we have ADX)
+        sideways_mask = has_adx & (self.df['adx'] < 25)
+        self.df.loc[sideways_mask, 'regime'] = 'Sideways'
         
-        # Fill NaNs (start of data) with 'Unknown' or 'Sideways'
-        self.df['regime'] = self.df['regime'].fillna('Unknown')
+        # Bull: Price > SMA 200 & ADX >= 25
+        bull_mask = has_sma & has_adx & (self.df['close'] > self.df['sma_200']) & (self.df['adx'] >= 25)
+        self.df.loc[bull_mask, 'regime'] = 'Bull'
+        
+        # Bear: Price < SMA 200 & ADX >= 25
+        bear_mask = has_sma & has_adx & (self.df['close'] < self.df['sma_200']) & (self.df['adx'] >= 25)
+        self.df.loc[bear_mask, 'regime'] = 'Bear'
         
         return self.df
 
