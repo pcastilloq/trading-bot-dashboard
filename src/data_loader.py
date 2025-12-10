@@ -121,6 +121,67 @@ class DataLoader:
             print(f"yfinance fallback failed: {e}")
             return None
 
+    def fetch_fintual_data(self, asset_id: int, limit: int = 365) -> Optional[pd.DataFrame]:
+        """
+        Fetch historical data from Fintual API for a specific fund.
+        
+        Args:
+            asset_id (int): Fintual Asset ID (e.g., 186 for Risky Norris).
+            limit (int): Days of history to fetch.
+            
+        Returns:
+            pd.DataFrame: OHLCV DataFrame (Close=NAV, Volume=0).
+        """
+        try:
+            import requests
+            url = f"https://fintual.cl/api/real_assets/{asset_id}/days"
+            print(f"Fetching Fintual data for Asset {asset_id}...")
+            
+            # Note: limit in days isn't directly supported by this endpoint in a simple param,
+            # it returns all history or we filter. To keep it simple, we fetch all and filter.
+            response = requests.get(url) 
+            
+            if response.status_code != 200:
+                print(f"Error fetching from Fintual: {response.status_code}")
+                return None
+                
+            data = response.json().get('data', [])
+            if not data:
+                print("No data received from Fintual.")
+                return None
+                
+            # Parse records
+            records = []
+            for item in data:
+                date_str = item.get('attributes', {}).get('date')
+                price = item.get('attributes', {}).get('price')
+                if date_str and price:
+                    records.append({'timestamp': pd.to_datetime(date_str), 'close': float(price)})
+            
+            if not records:
+                return None
+                
+            df = pd.DataFrame(records)
+            df.set_index('timestamp', inplace=True)
+            df.sort_index(inplace=True)
+            
+            # Fill other OHLC columns
+            df['open'] = df['close']
+            df['high'] = df['close']
+            df['low'] = df['close']
+            df['volume'] = 0.0
+            
+            # Filter limit
+            if limit:
+                df = df.tail(limit)
+                
+            print(f"Fetched {len(df)} days for Asset {asset_id}.")
+            return df
+            
+        except Exception as e:
+            print(f"Fintual fetch failed: {e}")
+            return None
+
     def save_data(self, df: pd.DataFrame, filename: str) -> None:
         """
         Save the DataFrame to a CSV file.
