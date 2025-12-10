@@ -19,22 +19,42 @@ st.title("🤖 Crypto Trading Assistant")
 
 # Sidebar
 st.sidebar.header("Configuration")
-symbol = st.sidebar.text_input("Symbol", "BTC/USDT")
-timeframe = st.sidebar.selectbox("Timeframe", ["1d", "4h", "1h", "15m"], index=0)
-limit = st.sidebar.slider("Candles to Load", 100, 1000, 365)
+# Asset Class Selector
+asset_class = st.sidebar.selectbox("Asset Class", ["Crypto", "Fintual Funds"])
+
+if asset_class == "Crypto":
+    symbol = st.sidebar.text_input("Symbol", "BTC/USDT")
+    timeframe = st.sidebar.selectbox("Timeframe", ["1d", "4h", "1h", "15m"], index=0)
+    limit = st.sidebar.slider("Lookback Days", 30, 365, 90)
+    asset_id = None
+else:
+    fintual_funds = {
+        'Risky Norris': 186,
+        'Moderate Pitt': 187,
+        'Conservative Clooney': 188,
+        'Very Conservative Streep': 15077
+    }
+    fintual_name = st.sidebar.selectbox("Fund", list(fintual_funds.keys()))
+    symbol = fintual_name # For display
+    asset_id = fintual_funds[fintual_name]
+    timeframe = '1d' # Funds are daily
+    limit = st.sidebar.slider("Lookback Days", 30, 730, 90)
 
 if st.sidebar.button("Refresh Data"):
     st.rerun()
 
 # Data Loading
 @st.cache_data(ttl=60) # Cache for 1 minute
-def load_data(symbol, timeframe, limit):
+def load_data(symbol, timeframe, limit, asset_id=None):
     loader = DataLoader(exchange_id='binance')
-    df = loader.fetch_data(symbol, timeframe, limit=limit)
+    if asset_id:
+        df = loader.fetch_fintual_data(asset_id, limit=limit)
+    else:
+        df = loader.fetch_data(symbol, timeframe, limit=limit)
     return df
 
 with st.spinner(f"Fetching data for {symbol}..."):
-    df = load_data(symbol, timeframe, limit)
+    df = load_data(symbol, timeframe, limit, asset_id)
 
 if df is None:
     st.error("Failed to fetch data. Please check your connection or symbol.")
