@@ -44,7 +44,8 @@ def send_telegram_message(message):
 MONITORED_ASSETS = [
     {'type': 'crypto', 'symbol': 'BTC/USDT', 'name': 'Bitcoin'},
     {'type': 'fintual', 'id': 186, 'name': 'Risky Norris'},
-    {'type': 'fintual', 'id': 187, 'name': 'Moderate Pitt'}
+    {'type': 'fintual', 'id': 187, 'name': 'Moderate Pitt'},
+    {'type': 'holdo', 'name': 'Chile Smart Fund'} 
 ]
 
 def get_market_status(asset):
@@ -53,6 +54,8 @@ def get_market_status(asset):
     
     if asset['type'] == 'crypto':
         df = loader.fetch_data(asset['symbol'], timeframe, limit=210)
+    elif asset['type'] == 'holdo':
+        df = loader.fetch_holdo_data(limit=210)
     else:
         df = loader.fetch_fintual_data(asset['id'], limit=210)
         
@@ -139,7 +142,7 @@ def get_full_summary():
 
 def main():
     print("🤖 Alert Bot Started (Multi-Asset)...")
-    send_telegram_message("🤖 **Bot Actualizado**\nMonitoreando Bitcoin + Fintual.")
+    send_telegram_message("🤖 **Bot Actualizado**\nMonitoreando Bitcoin + Fintual + Holdo.")
     
     # Store last action per asset name
     last_actions = {} 

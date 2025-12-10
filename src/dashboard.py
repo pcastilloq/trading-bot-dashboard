@@ -20,14 +20,16 @@ st.title("🤖 Crypto Trading Assistant")
 # Sidebar
 st.sidebar.header("Configuration")
 # Asset Class Selector
-asset_class = st.sidebar.selectbox("Asset Class", ["Crypto", "Fintual Funds"])
+# Asset Class Selector
+asset_class = st.sidebar.selectbox("Asset Class", ["Crypto", "Fintual Funds", "Holdo Funds"])
 
 if asset_class == "Crypto":
     symbol = st.sidebar.text_input("Symbol", "BTC/USDT")
     timeframe = st.sidebar.selectbox("Timeframe", ["1d", "4h", "1h", "15m"], index=0)
     limit = st.sidebar.slider("Lookback Days", 30, 365, 90)
     asset_id = None
-else:
+    is_holdo = False
+elif asset_class == "Fintual Funds":
     fintual_funds = {
         'Risky Norris': 186,
         'Moderate Pitt': 187,
@@ -39,19 +41,30 @@ else:
     asset_id = fintual_funds[fintual_name]
     timeframe = '1d' # Funds are daily
     limit = st.sidebar.slider("Lookback Days", 30, 730, 90)
+    is_holdo = False
+else:
+    # Holdo
+    symbol = "Chile Smart Fund"
+    timeframe = '1d'
+    asset_id = None
+    is_holdo = True
+    limit = st.sidebar.slider("Lookback Days", 30, 730, 90)
 
 if st.sidebar.button("Refresh Data"):
     st.rerun()
 
 # Data Loading
+# Data Loading
 @st.cache_data(ttl=60) # Cache for 1 minute
-def load_data(symbol, timeframe, limit, asset_id=None):
+def load_data(symbol, timeframe, limit, asset_id=None, is_holdo=False):
     # Determine Fetch Limit (Calculation) vs View Limit (Display)
     # We always need enough history for SMA 200 and accurate ADX
     calculation_limit = max(365, limit)
     
     loader = DataLoader(exchange_id='binance')
-    if asset_id:
+    if is_holdo:
+        df = loader.fetch_holdo_data(limit=calculation_limit)
+    elif asset_id:
         df = loader.fetch_fintual_data(asset_id, limit=calculation_limit)
     else:
         df = loader.fetch_data(symbol, timeframe, limit=calculation_limit)
@@ -59,7 +72,7 @@ def load_data(symbol, timeframe, limit, asset_id=None):
 
 with st.spinner(f"Fetching data for {symbol}..."):
     # Load full history for calculation
-    df_full = load_data(symbol, timeframe, limit, asset_id)
+    df_full = load_data(symbol, timeframe, limit, asset_id, is_holdo)
 
 if df_full is None:
     st.error("Failed to fetch data. Please check your connection or symbol.")

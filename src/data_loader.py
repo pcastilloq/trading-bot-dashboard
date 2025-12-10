@@ -182,6 +182,102 @@ class DataLoader:
             print(f"Fintual fetch failed: {e}")
             return None
 
+    def fetch_holdo_data(self, limit: int = 365) -> Optional[pd.DataFrame]:
+        """
+        Fetch and synthesize historical data for 'Chile Smart Fund' (Holdo).
+        
+        Args:
+            limit (int): Days of history to fetch.
+            
+        Returns:
+            pd.DataFrame: OHLCV DataFrame (Close=Synthetic Index).
+        """
+        try:
+            import yfinance as yf
+            
+            # Portfolio Definition
+            holdo_portfolio = {
+                'CHILE.SN': 0.1520, 'SQM-B.SN': 0.1150, 'FALABELLA.SN': 0.0930,
+                'BSANTANDER.SN': 0.0880, 'LTM.SN': 0.0840, 'BCI.SN': 0.0750,
+                'COPEC.SN': 0.0560, 'ENELCHILE.SN': 0.0410, 'ANDINA-B.SN': 0.0340,
+                'CENCOSUD.SN': 0.0320, 'ORO-BLANCO.SN': 0.0320, 'QUINENCO.SN': 0.0250,
+                'AGUAS-A.SN': 0.0230, 'CENCOMALLS.SN': 0.0220, 'ITAUCL.SN': 0.0210,
+                'CCU.SN': 0.0180, 'VAPORES.SN': 0.0160, 'MALLPLAZA.SN': 0.0160
+            }
+            
+            # Helper to calculate start date for yfinance
+            period = "2y" # Fetch plenty of data to ensure overlap
+            
+            print("Fetching Holdo Portfolio Components...")
+            # Fetch data for all tickers
+            tickers = list(holdo_portfolio.keys())
+            data = yf.download(tickers, period=period, progress=False, group_by='ticker')
+            
+            if data.empty:
+                print("Holdo: No data fetched.")
+                return None
+            
+            # Synthesize Index
+            # Strategy: Calculate Daily Return for each asset -> Weighted Average Return -> Cumulative Product
+            
+            # 1. Extract Close prices
+            closes = pd.DataFrame()
+            for ticker in tickers:
+                if ticker in data.columns.levels[0]:
+                    closes[ticker] = data[ticker]['Close']
+                elif 'Close' in data.columns: # Single ticker case (unlikely here but safe)
+                    closes[ticker] = data['Close']
+            
+            # 2. Calculate Daily Returns
+            returns = closes.pct_change()
+            
+            # 3. Calculate Weighted Portfolio Return
+            # Ensure index alignment and fillna(0) for missing days (stocks not trading) might be risky.
+            # Ideally dropna() to only count days where all (or most) traded.
+            returns.dropna(how='all', inplace=True) 
+            
+            # Note: Weights sum to ~0.957. We should probably re-normalize or assume cash drag.
+            # Assuming remaining is cash or minor stocks: let's re-normalize to 1.0 for the equity portion?
+            # Or just use raw weights (simulating the actual fund exposure).
+            # Let's use raw weights as provided.
+            
+            portfolio_return = pd.Series(0.0, index=returns.index)
+            for ticker, weight in holdo_portfolio.items():
+                if ticker in returns.columns:
+                    # Fill NaN returns with 0 (assuming flat price if no trade)
+                    r = returns[ticker].fillna(0.0)
+                    portfolio_return += r * weight
+            
+            # 4. Construct Index (Start at 100)
+            # (1 + r).cumprod() * 100
+            portfolio_index = (1 + portfolio_return).cumprod() * 100
+            
+            # 5. Format to OHLCV
+            df = pd.DataFrame(portfolio_index, columns=['close'])
+            df.index.name = 'timestamp'
+            
+            # Remove Timezone
+            if df.index.tz is not None:
+                df.index = df.index.tz_localize(None)
+                
+            # Filter Limit
+            if limit:
+                df = df.tail(limit)
+                
+            df['open'] = df['close']
+            df['high'] = df['close']
+            df['low'] = df['close']
+            df['volume'] = 0.0
+            
+            print(f"Synthesized Holdo Index. Rows: {len(df)}")
+            return df
+
+        except Exception as e:
+            print(f"Holdo fetch failed: {e}")
+            import traceback
+            traceback.print_exc()
+            return None
+
     def save_data(self, df: pd.DataFrame, filename: str) -> None:
         """
         Save the DataFrame to a CSV file.
