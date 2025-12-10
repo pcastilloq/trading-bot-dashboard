@@ -141,8 +141,8 @@ def get_full_summary():
     return msg
 
 def main():
-    print("🤖 Alert Bot Started (Multi-Asset)...")
-    send_telegram_message("🤖 **Bot Actualizado**\nMonitoreando Bitcoin + Fintual + Holdo.")
+    print("🦊 Kitsuno Funds Assistant Started...")
+    send_telegram_message("🦊 **Kitsuno Funds Assistant**\nMonitoreando Bitcoin + Fintual + Holdo.")
     
     # Store last action per asset name
     last_actions = {} 

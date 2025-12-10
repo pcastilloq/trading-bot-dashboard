@@ -12,10 +12,10 @@ from src.data_loader import DataLoader
 from src.regime_detector import RegimeDetector
 
 # Page Config
-st.set_page_config(page_title="Trading Bot Dashboard", layout="wide")
+st.set_page_config(page_title="Kitsuno Funds Assistant", layout="wide")
 
 # Title
-st.title("🤖 Crypto Trading Assistant")
+st.title("� Kitsuno Funds Assistant")
 
 # Sidebar
 st.sidebar.header("Configuration")
