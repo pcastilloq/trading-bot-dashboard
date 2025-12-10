@@ -43,7 +43,10 @@ else:
 if st.sidebar.button("Refresh Data"):
     st.rerun()
 
-# Determine Fetch Limit (Calculation) vs View Limit (Display)
+# Data Loading
+@st.cache_data(ttl=60) # Cache for 1 minute
+def load_data(symbol, timeframe, limit, asset_id=None):
+    # Determine Fetch Limit (Calculation) vs View Limit (Display)
     # We always need enough history for SMA 200 and accurate ADX
     calculation_limit = max(365, limit)
     
