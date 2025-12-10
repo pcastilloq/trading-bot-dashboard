@@ -15,7 +15,7 @@ from src.regime_detector import RegimeDetector
 st.set_page_config(page_title="Kitsuno Funds Assistant", layout="wide")
 
 # Title
-st.title("� Kitsuno Funds Assistant")
+st.title("🦊 Kitsuno Funds Assistant")
 
 # Sidebar
 st.sidebar.header("Configuration")
