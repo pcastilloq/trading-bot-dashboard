@@ -43,47 +43,68 @@ else:
 if st.sidebar.button("Refresh Data"):
     st.rerun()
 
-# Data Loading
-@st.cache_data(ttl=60) # Cache for 1 minute
-def load_data(symbol, timeframe, limit, asset_id=None):
+# Determine Fetch Limit (Calculation) vs View Limit (Display)
+    # We always need enough history for SMA 200 and accurate ADX
+    calculation_limit = max(365, limit)
+    
     loader = DataLoader(exchange_id='binance')
     if asset_id:
-        df = loader.fetch_fintual_data(asset_id, limit=limit)
+        df = loader.fetch_fintual_data(asset_id, limit=calculation_limit)
     else:
-        df = loader.fetch_data(symbol, timeframe, limit=limit)
+        df = loader.fetch_data(symbol, timeframe, limit=calculation_limit)
     return df
 
 with st.spinner(f"Fetching data for {symbol}..."):
-    df = load_data(symbol, timeframe, limit, asset_id)
+    # Load full history for calculation
+    df_full = load_data(symbol, timeframe, limit, asset_id)
 
-if df is None:
+if df_full is None:
     st.error("Failed to fetch data. Please check your connection or symbol.")
 else:
-    # --- Analysis ---
+    # --- Analysis (on FULL data) ---
     # 1. Detect Regime
-    detector = RegimeDetector(df)
-    df = detector.detect_regime()
-    current_regime = detector.get_current_regime()
+    detector = RegimeDetector(df_full)
+    df_full = detector.detect_regime()
     
     # 2. Calculate Indicators (SMA 7/30 & Bollinger)
-    df['sma_7'] = ta.sma(df['close'], length=7)
-    df['sma_30'] = ta.sma(df['close'], length=30)
+    df_full['sma_7'] = ta.sma(df_full['close'], length=7)
+    df_full['sma_30'] = ta.sma(df_full['close'], length=30)
     
-    bb = ta.bbands(df['close'], length=20, std=2.0)
-    df = pd.concat([df, bb], axis=1)
+    bb = ta.bbands(df_full['close'], length=20, std=2.0)
+    df_full = pd.concat([df_full, bb], axis=1)
     
     # Identify BB columns dynamically
-    # pandas-ta returns columns like BBL_20_2.0, BBM_20_2.0, BBU_20_2.0
-    # But sometimes names vary. We use index fallback.
     if f"BBL_20_2.0" in bb.columns:
         lower_col = f"BBL_20_2.0"
         mid_col = f"BBM_20_2.0"
         upper_col = f"BBU_20_2.0"
     else:
-        # Fallback based on index (Lower, Mid, Upper, Bandwidth, Percent)
         lower_col = bb.columns[0]
         mid_col = bb.columns[1]
         upper_col = bb.columns[2]
+
+    # --- Slicing for Display ---
+    # Now we slice the dataframe to show only the requested 'limit' (View Range)
+    # But we keep the indicators calculated from the full history.
+    df = df_full.tail(limit).copy()
+    
+    # Get current regime from the LAST row of the sliced data (which is the actual latest)
+    # Note: detector.get_current_regime() re-runs detection on self.df, 
+    # so we should just pull from our pre-calculated df_full/df.
+    
+    last_row = df.iloc[-1]
+    current_regime = {
+        'regime': last_row['regime'],
+        'warning': None # warnings logic was custom in get_current_regime, let's simplify or re-implement if needed
+    }
+    
+    # Re-implement warning logic here simply for the filtered view
+    if last_row['adx'] < 20: 
+        # Check slope if possible (need 2 rows)
+        if len(df) > 1:
+            if df['adx'].iloc[-1] > df['adx'].iloc[-2]:
+                 current_regime['warning'] = "Potential Breakout"
+
     
     # 3. Determine Recommendation
     last_row = df.iloc[-1]
